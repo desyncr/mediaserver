@@ -1,0 +1,97 @@
+# To run: docker-compose run
+#
+# Create a .env file in the same folder as this file and change the variables.
+# MOUNT_POINT=/tmp/
+version: "2"
+
+services:
+  transmission:
+    image: strm/transmission
+    container_name: transmission
+    restart: always
+    ports:
+        - "9092:9091"
+    networks:
+        - plexnet
+    environment:
+        - TRANSMISSION_PASSWORD=${TRANSMISSION_PASSWORD}
+        - TRANSMISSION_DOWNLOAD_LIMIT=1024
+        - TRANSMISSION_DOWNLOAD_QUEUE=20
+    volumes:
+        - ${MOUNT_POINT}/transmission/completed:/downloads
+        - ${MOUNT_POINT}/transmission/incomplete:/incomplete
+        - ./localtime:/etc/localtime:ro
+  radarr:
+    image: linuxserver/radarr
+    container_name: radarr
+    restart: always
+    ports:
+      - "7878:7878"
+    networks:
+      - plexnet
+    environment:
+      - PGID=${PGID}
+      - PUID=${PUID}
+      - TZ=Europe/London
+    volumes:
+      - ${MOUNT_POINT}/radarr-config:/config
+      - ${MOUNT_POINT}/transmission/completed:/downloads
+      - ${MOUNT_POINT}/plex/movies:/movies
+  sonarr:
+    image: linuxserver/sonarr
+    container_name: sonarr
+    restart: always
+    ports:
+      - "8989:8989"
+    networks:
+      - plexnet
+    environment:
+      - PGID=${PGID}
+      - PUID=${PUID}
+      - TZ=${TZ}
+    volumes:
+      - ${MOUNT_POINT}/sonarr/config:/config
+      - ${MOUNT_POINT}/transmission/completed:/downloads
+      - ${MOUNT_POINT}/plex/tv:/tv
+  jackett:
+    image: linuxserver/jackett
+    container_name: jackett
+    restart: always
+    networks:
+      - plexnet
+    environment:
+      - PGID=${PGID}
+      - PUID=${PUID}
+      - TZ=${TZ}
+    volumes:
+      - ${MOUNT_POINT}/jackett/config:/config
+      - ${MOUNT_POINT}/jackett/downloads:/downloads
+    ports:
+      - "9117:9117"
+  plex:
+    image: timhaak/plex
+    container_name: plex
+    restart: always
+    ports:
+      - "32400:32400"
+      - "1900:1900"
+      - "3005:3005"
+      - "5353:5353"
+      - "8324:8324"
+      - "32410:32410"
+      - "32412:32412"
+      - "32413:32413"
+      - "32414:32414"
+      - "32469:32469"
+    networks:
+      - plexnet
+    environment:
+      - PGID=${PGID}
+      - PUID=${PUID}
+      - TZ=${TZ}
+    volumes:
+      - ${MOUNT_POINT}/plex-config:/config
+      - ${MOUNT_POINT}/plex:/data
+networks:
+  plexnet:
+    driver: bridge
